@@ -1,19 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 
-const Dashboard = () => {
+const Dashboard = ({ user, handleLogout }) => {
   const [announcements, setAnnouncements] = useState([]);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const navigate = useNavigate();
+  const [category, setCategory] = useState('Todas');
+  const [filteredAnnouncements, setFilteredAnnouncements] = useState([]);
 
   const token = localStorage.getItem('token');
 
   useEffect(() => {
-    if (!token) {
-      navigate('/login');
-      return;
-    }
+    if (!token) return;
 
     fetch('http://localhost:3000/announcements', {
       headers: { Authorization: `Bearer ${token}` },
@@ -21,56 +16,63 @@ const Dashboard = () => {
       .then((res) => res.json())
       .then((data) => setAnnouncements(data))
       .catch((err) => console.error(err));
-  }, [token, navigate]);
+  }, [token]);
 
-  const handleAdd = async () => {
-    const response = await fetch('http://localhost:3000/announcements', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ title, description }),
-    });
-
-    const newItem = await response.json();
-    setAnnouncements([...announcements, newItem]);
-    setTitle('');
-    setDescription('');
-  };
+  // Filtrar anuncios según categoría
+  useEffect(() => {
+    if (category === 'Todas') {
+      setFilteredAnnouncements(announcements);
+    } else {
+      setFilteredAnnouncements(
+        announcements.filter((a) =>
+          a.category && a.category.toLowerCase() === category.toLowerCase()
+        )
+      );
+    }
+  }, [category, announcements]);
 
   const handleDelete = async (id) => {
     await fetch(`http://localhost:3000/announcements/${id}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
     setAnnouncements(announcements.filter((a) => a.id !== id));
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
-  };
-
   return (
-    <div>
-      <h2>Tablero de Anuncios</h2>
-      <button onClick={handleLogout}>Cerrar sesión</button>
-
-      {announcements.map((a) => (
-        <div key={a.id}>
-          <h3>{a.title}</h3>
-          <p>{a.description}</p>
-          <button onClick={() => handleDelete(a.id)}>Eliminar</button>
+    <div className="dashboard-container">
+      <header className="dashboard-header">
+        <h1>Portale</h1>
+        <div className="user-info">
+          <span>{user?.username || user?.email}</span>
+          <button onClick={handleLogout}>Cerrar sesión</button>
         </div>
-      ))}
+      </header>
 
-      <h3>Agregar nuevo anuncio</h3>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" />
-      <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripción" />
-      <button onClick={handleAdd}>Agregar</button>
+      <section className="category-filter">
+        <label>Filtrar por categoría: </label>
+        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          <option value="Todas">Todas</option>
+          <option value="Noticias">Noticias</option>
+          <option value="Ventas">Ventas</option>
+          <option value="Eventos">Eventos</option>
+          {/* Añade aquí más categorías si quieres */}
+        </select>
+      </section>
+
+      <section className="announcements-list">
+        {filteredAnnouncements.length === 0 ? (
+          <p>No hay anuncios para esta categoría.</p>
+        ) : (
+          filteredAnnouncements.map((a) => (
+            <div key={a.id} className="anuncio">
+              <h3>{a.title || a.titulo}</h3>
+              <p>{a.description || a.descripcion}</p>
+              <button onClick={() => handleDelete(a.id)}>Eliminar</button>
+            </div>
+          ))
+        )}
+      </section>
     </div>
   );
 };

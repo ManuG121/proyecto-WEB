@@ -1,23 +1,16 @@
+require('dotenv').config();
 const { Sequelize } = require('sequelize');
 
-
 const sequelize = new Sequelize(
-  'railway',
-  'root',
-  'RxsITIAJXxnQCTCCqroVNsFKraKngHPj',
+  process.env.DB_NAME,      // nombre de la base de datos
+  process.env.DB_USER,      // usuario
+  process.env.DB_PASSWORD,  // contraseña
   {
-    host: 'shortline.proxy.rlwy.net',
+    host: process.env.DB_HOST,  // host (ejemplo: metro.proxy.rlwy.net)
     dialect: 'mysql',
-    port: 47453
+    port: process.env.DB_PORT,  // puerto (ejemplo: 18143)
+    logging: false,
   }
 );
-
-sequelize.authenticate()
-  .then(() => {
-    console.log('Conexión establecida con la base de datos');
-  })
-  .catch((err) => {
-    console.error('Error al conectar a la base de datos:', err);
-  });
 
 module.exports = sequelize;

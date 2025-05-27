@@ -19,7 +19,7 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ error: 'Contraseña incorrecta' });
     }
 
-    const token = jwt.sign({ userId: user.id }, 'secretKey', { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     res.json({
       user: {
@@ -59,7 +59,14 @@ const getUserById = async (req, res) => {
 const createUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    const newUser = await User.create({ username, email, password });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await User.create({ 
+      username, 
+      email, 
+      password: hashedPassword 
+    });
     res.status(201).json(newUser);
   } catch (error) {
     res.status(400).json({ error: error.message });

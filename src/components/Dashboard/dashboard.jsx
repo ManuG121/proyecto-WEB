@@ -1,128 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Componente de ventana emergente (modal) para agregar un anuncio
-const AddAnnouncementModal = ({ show, onClose, onAdd }) => {
+const Dashboard = () => {
+  const [announcements, setAnnouncements] = useState([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onAdd({ title, description });
-    setTitle('');
-    setDescription('');
-    onClose();
-  };
-
-  if (!show) return null;
-
-  return (
-    <div className="modal">
-      <div className="modal-content">
-        <h2>Agregar Anuncio</h2>
-        <form onSubmit={handleSubmit}>
-          <div>
-            <label>Título:</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label>Descripción:</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-            ></textarea>
-          </div>
-          <button type="submit">Agregar</button>
-          <button type="button" onClick={onClose}>
-            Cancelar
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// Componente de ventana emergente (modal) para confirmar eliminación de un anuncio
-const DeleteConfirmationModal = ({ show, onClose, onDelete, announcementId }) => {
-  if (!show) return null;
-
-  return (
-    <div className="modal">
-      <div className="modal-content">
-        <h2>¿Estás seguro de que deseas eliminar este anuncio?</h2>
-        <button onClick={() => onDelete(announcementId)}>Sí, eliminar</button>
-        <button onClick={onClose}>Cancelar</button>
-      </div>
-    </div>
-  );
-};
-
-const Dashboard = () => {
-  const [announcements, setAnnouncements] = useState([
-    { id: 1, title: 'Anuncio 1', description: 'Este es el primer anuncio.' },
-    { id: 2, title: 'Anuncio 2', description: 'Este es el segundo anuncio.' },
-    { id: 3, title: 'Anuncio 3', description: 'Este es el tercer anuncio.' }
-  ]);
-
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [announcementToDelete, setAnnouncementToDelete] = useState(null);
-
   const navigate = useNavigate();
 
-  const handleAddAnnouncement = (newAnnouncement) => {
-    setAnnouncements([...announcements, { ...newAnnouncement, id: Date.now() }]);
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    fetch('http://localhost:3000/announcements', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => setAnnouncements(data))
+      .catch((err) => console.error(err));
+  }, [token, navigate]);
+
+  const handleAdd = async () => {
+    const response = await fetch('http://localhost:3000/announcements', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ title, description }),
+    });
+
+    const newItem = await response.json();
+    setAnnouncements([...announcements, newItem]);
+    setTitle('');
+    setDescription('');
   };
 
-  const handleDeleteAnnouncement = (announcementId) => {
-    setAnnouncements(announcements.filter((ann) => ann.id !== announcementId));
-    setShowDeleteModal(false);
+  const handleDelete = async (id) => {
+    await fetch(`http://localhost:3000/announcements/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    setAnnouncements(announcements.filter((a) => a.id !== id));
   };
 
-  const handleOpenDeleteModal = (announcementId) => {
-    setAnnouncementToDelete(announcementId);
-    setShowDeleteModal(true);
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/login');
   };
 
   return (
     <div>
       <h2>Tablero de Anuncios</h2>
-      <button onClick={() => setShowAddModal(true)}>Agregar Anuncio</button>
-      
-      <div>
-        {announcements.length > 0 ? (
-          announcements.map((announcement) => (
-            <div key={announcement.id} className="announcement">
-              <h3>{announcement.title}</h3>
-              <p>{announcement.description}</p>
-              <button onClick={() => handleOpenDeleteModal(announcement.id)}>
-                Eliminar
-              </button>
-            </div>
-          ))
-        ) : (
-          <p>No hay anuncios disponibles.</p>
-        )}
-      </div>
+      <button onClick={handleLogout}>Cerrar sesión</button>
 
-      <AddAnnouncementModal
-        show={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAdd={handleAddAnnouncement}
-      />
+      {announcements.map((a) => (
+        <div key={a.id}>
+          <h3>{a.title}</h3>
+          <p>{a.description}</p>
+          <button onClick={() => handleDelete(a.id)}>Eliminar</button>
+        </div>
+      ))}
 
-      <DeleteConfirmationModal
-        show={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onDelete={handleDeleteAnnouncement}
-        announcementId={announcementToDelete}
-      />
+      <h3>Agregar nuevo anuncio</h3>
+      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" />
+      <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripción" />
+      <button onClick={handleAdd}>Agregar</button>
     </div>
   );
 };

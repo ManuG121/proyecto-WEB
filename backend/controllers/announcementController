@@ -1,0 +1,23 @@
+const Announcement = require('../models/announcement'); // debe coincidir con el archivo nuevo
+
+const getAllAnnouncements = async (req, res) => {
+  const announcements = await Announcement.findAll();
+  res.json(announcements);
+};
+
+const createAnnouncement = async (req, res) => {
+  const { title, description } = req.body;
+  const newAnnouncement = await Announcement.create({ title, description, userId: req.userId });
+  res.status(201).json(newAnnouncement);
+};
+
+const deleteAnnouncement = async (req, res) => {
+  const { id } = req.params;
+  const ann = await Announcement.findByPk(id);
+  if (!ann) return res.status(404).json({ error: 'No encontrado' });
+
+  await ann.destroy();
+  res.json({ message: 'Anuncio eliminado' });
+};
+
+module.exports = { getAllAnnouncements, createAnnouncement, deleteAnnouncement };

@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const Dashboard = ({ user, handleLogout }) => {
+const Dashboard = () => {
   const [announcements, setAnnouncements] = useState([]);
-  const [category, setCategory] = useState('Todas');
-  const [filteredAnnouncements, setFilteredAnnouncements] = useState([]);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [modalAnnouncement, setModalAnnouncement] = useState(null);
+  const navigate = useNavigate();
 
   const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      navigate('/login');
+      return;
+    }
 
     fetch('http://localhost:3000/announcements', {
       headers: { Authorization: `Bearer ${token}` },
@@ -16,63 +24,88 @@ const Dashboard = ({ user, handleLogout }) => {
       .then((res) => res.json())
       .then((data) => setAnnouncements(data))
       .catch((err) => console.error(err));
-  }, [token]);
+  }, [token, navigate]);
 
-  // Filtrar anuncios según categoría
-  useEffect(() => {
-    if (category === 'Todas') {
-      setFilteredAnnouncements(announcements);
-    } else {
-      setFilteredAnnouncements(
-        announcements.filter((a) =>
-          a.category && a.category.toLowerCase() === category.toLowerCase()
-        )
-      );
-    }
-  }, [category, announcements]);
+  const handleAdd = async () => {
+    const response = await fetch('http://localhost:3000/announcements', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ title, description }),
+    });
+
+    const newItem = await response.json();
+    setAnnouncements([...announcements, newItem]);
+    setTitle('');
+    setDescription('');
+  };
 
   const handleDelete = async (id) => {
     await fetch(`http://localhost:3000/announcements/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
     setAnnouncements(announcements.filter((a) => a.id !== id));
   };
 
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/login');
+  };
+
+  const openModal = (announcement) => {
+    setModalAnnouncement(announcement);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setModalAnnouncement(null);
+    setShowModal(false);
+  };
+
   return (
-    <div className="dashboard-container">
+    <div className="app-container">
       <header className="dashboard-header">
-        <h1>Portale</h1>
+        <h1>Portale News</h1>
         <div className="user-info">
           <span>{user?.username || user?.email}</span>
-          <button onClick={handleLogout}>Cerrar sesión</button>
+          <button className="logout-btn" onClick={handleLogout}>Cerrar sesión</button>
         </div>
       </header>
 
-      <section className="category-filter">
-        <label>Filtrar por categoría: </label>
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          <option value="Todas">Todas</option>
-          <option value="Noticias">Noticias</option>
-          <option value="Ventas">Ventas</option>
-          <option value="Eventos">Eventos</option>
-          {/* Añade aquí más categorías si quieres */}
-        </select>
-      </section>
+      <h2>Tablero de Anuncios</h2>
 
-      <section className="announcements-list">
-        {filteredAnnouncements.length === 0 ? (
-          <p>No hay anuncios para esta categoría.</p>
-        ) : (
-          filteredAnnouncements.map((a) => (
-            <div key={a.id} className="anuncio">
-              <h3>{a.title || a.titulo}</h3>
-              <p>{a.description || a.descripcion}</p>
-              <button onClick={() => handleDelete(a.id)}>Eliminar</button>
-            </div>
-          ))
-        )}
-      </section>
+      {announcements.map((a) => (
+        <div 
+          key={a.id} 
+          className="anuncio" 
+          style={{ cursor: 'pointer' }}
+          onClick={() => openModal(a)}
+          >
+          <h3>{a.title}</h3>
+          <p>{a.description.length > 100 ? a.description.substring(0, 100) + "..." : a.description}</p>
+          <button onClick={(e) => { e.stopPropagation(); handleDelete(a.id); }}>Eliminar</button>
+        </div>
+      ))}
+
+      <h3>Agregar nuevo anuncio</h3>
+      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" />
+      <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripción" />
+      <button onClick={handleAdd}>Agregar</button>
+
+      {showModal && modalAnnouncement && (
+        <div className="modal" onClick={closeModal}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2>{modalAnnouncement.title}</h2>
+            <p>{modalAnnouncement.description}</p>
+            <button onClick={closeModal}>Cerrar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

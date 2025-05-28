@@ -5,27 +5,42 @@ import './components/styles/styles.css';
 function App() {
   const [anuncios, setAnuncios] = useState([
     { id: 1, titulo: 'Venezuela Lista', descripcion: 'Maduro afirma que está listo para recoger a migrantes presos en El Salvador.' },
-    { id: 2, titulo: 'Mundo Gamer existencias', descripcion: 'PS5 Slim usado por solo $1.750.000' },
-    { id: 3, titulo: 'Mundo Gamer existencias', descripcion: 'PS5 Slim nuevo + control dualsense adicional + diadema + juego de obsequio por solo $2.200.000' },
+    { id: 2, titulo: 'Japon y el fuego artifical mas grande', descripcion: 'En Japón lanzaron el fuego artificial más grande del mundo.' },
+    { id: 3, titulo: 'URGENTE', descripcion: 'Las calles de Venezuela se desbordan para protestar contra el fraude de Nicolás Maduro.' },
   ]);
 
   const [newAnuncio, setNewAnuncio] = useState({ titulo: '', descripcion: '' });
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [anuncioToDelete, setAnuncioToDelete] = useState(null);
+  const [selectedAnuncio, setSelectedAnuncio] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
 
-  const [user, setUser] = useState(null);
+  const [user, setUser ] = useState(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  // Estado para manejar el perfil del usuario
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profile, setProfile] = useState({ username: '', email: '', newPassword: '' });
+
   const handleAddAnuncio = () => {
     const nuevoAnuncio = { id: Date.now(), ...newAnuncio };
     setAnuncios([...anuncios, nuevoAnuncio]);
     setNewAnuncio({ titulo: '', descripcion: '' });
     setShowModal(false);
+  };
+
+  const handleEditAnuncio = () => {
+    setAnuncios(anuncios.map(anuncio => 
+      anuncio.id === selectedAnuncio.id ? { ...selectedAnuncio, ...newAnuncio } : anuncio
+    ));
+    setNewAnuncio({ titulo: '', descripcion: '' });
+    setShowModal(false);
+    setIsEditing(false);
   };
 
   const handleDeleteAnuncio = () => {
@@ -45,7 +60,8 @@ function App() {
       if (!response.ok) throw new Error('Credenciales inválidas');
 
       const data = await response.json();
-      setUser(data.user);
+      setUser (data.user);
+      setProfile({ username: data.user.username, email: data.user.email, newPassword: '' }); // Cargar perfil
       setError('');
     } catch (err) {
       setError('Error al iniciar sesión');
@@ -74,9 +90,26 @@ function App() {
   };
 
   const handleLogout = () => {
-    setUser(null);
+    setUser (null);
     setEmail('');
     setPassword('');
+  };
+
+  const openEditModal = (anuncio) => {
+    setSelectedAnuncio(anuncio);
+    setNewAnuncio({ titulo: anuncio.titulo, descripcion: anuncio.descripcion });
+    setIsEditing(true);
+    setShowModal(true);
+  };
+
+  const openProfileModal = () => {
+    setShowProfileModal(true);
+  };
+
+  const handleUpdateProfile = () => {
+    // Aquí puedes agregar la lógica para actualizar la contraseña en el backend si es necesario
+    setUser ({ ...user, username: profile.username, email: profile.email });
+    setShowProfileModal(false);
   };
 
   return (
@@ -128,15 +161,17 @@ function App() {
           </div>
         ) : (
           <>
-            <h1>Tablero de Anuncios</h1>
+            <h1>PORTALE NEWS</h1>
             <p>Bienvenido, {user.username || user.email}</p>
             <button onClick={handleLogout}>Cerrar sesión</button>
+            <button onClick={openProfileModal}>Ver Perfil</button>
 
             <div className="anuncios-container">
               {anuncios.map(anuncio => (
                 <div key={anuncio.id} className="anuncio">
                   <h3>{anuncio.titulo}</h3>
                   <p>{anuncio.descripcion}</p>
+                  <button onClick={() => openEditModal(anuncio)}>Editar</button>
                   <button onClick={() => { setShowDeleteModal(true); setAnuncioToDelete(anuncio.id); }}>
                     Eliminar
                   </button>
@@ -144,14 +179,18 @@ function App() {
               ))}
             </div>
 
-            <button className="add-anuncio-button" onClick={() => setShowModal(true)}>
+            <button className="add-anuncio-button" onClick={() => {
+              setNewAnuncio({ titulo: '', descripcion: '' });
+              setIsEditing(false);
+              setShowModal(true);
+            }}>
               Agregar Anuncio
             </button>
 
             {showModal && (
               <div className="modal">
                 <div className="modal-content">
-                  <h2>Nuevo Anuncio</h2>
+                  <h2>{isEditing ? 'Editar Anuncio' : 'Nuevo Anuncio'}</h2>
                   <label>
                     Título:
                     <input
@@ -168,7 +207,9 @@ function App() {
                       onChange={(e) => setNewAnuncio({ ...newAnuncio, descripcion: e.target.value })}
                     />
                   </label>
-                  <button onClick={handleAddAnuncio}>Agregar</button>
+                  <button onClick={isEditing ? handleEditAnuncio : handleAddAnuncio}>
+                    {isEditing ? 'Actualizar' : 'Agregar'}
+                  </button>
                   <button onClick={() => setShowModal(false)}>Cancelar</button>
                 </div>
               </div>
@@ -180,6 +221,40 @@ function App() {
                   <h2>¿Estás seguro de eliminar este anuncio?</h2>
                   <button onClick={handleDeleteAnuncio}>Sí, eliminar</button>
                   <button onClick={() => setShowDeleteModal(false)}>Cancelar</button>
+                </div>
+              </div>
+            )}
+
+            {showProfileModal && (
+              <div className="modal">
+                <div className="modal-content">
+                  <h2>Editar Perfil</h2>
+                  <label>
+                    Nombre de usuario:
+                    <input
+                      type="text"
+                      value={profile.username}
+                      onChange={(e) => setProfile({ ...profile, username: e.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Email:
+                    <input
+                      type="email"
+                      value={profile.email}
+                      onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Nueva Contraseña:
+                    <input
+                      type="password"
+                      value={profile.newPassword}
+                      onChange={(e) => setProfile({ ...profile, newPassword: e.target.value })}
+                    />
+                  </label>
+                  <button onClick={handleUpdateProfile}>Actualizar Perfil</button>
+                  <button onClick={() => setShowProfileModal(false)}>Cancelar</button>
                 </div>
               </div>
             )}

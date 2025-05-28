@@ -4,33 +4,31 @@ import './components/styles/styles.css';
 
 function App() {
   const [anuncios, setAnuncios] = useState([
-    { id: 1, titulo: 'Venezuela Lista', descripcion: 'Maduro afirma que está listo para recoger a migrantes presos en El Salvador.' },
-    { id: 2, titulo: 'Japon y el fuego artifical mas grande', descripcion: 'En Japón lanzaron el fuego artificial más grande del mundo.' },
-    { id: 3, titulo: 'URGENTE', descripcion: 'Las calles de Venezuela se desbordan para protestar contra el fraude de Nicolás Maduro.' },
+    { id: 1, titulo: 'Venezuela Lista', descripcion: 'Maduro afirma que está listo para recoger a migrantes presos en El Salvador.', categoria: 'local' },
+    { id: 2, titulo: 'Japón y el fuego artificial más grande', descripcion: 'En Japón lanzaron el fuego artificial más grande del mundo.', categoria: 'internacional' },
+    { id: 3, titulo: 'URGENTE', descripcion: 'Las calles de Venezuela se desbordan para protestar contra el fraude de Nicolás Maduro.', categoria: 'local' },
   ]);
 
-  const [newAnuncio, setNewAnuncio] = useState({ titulo: '', descripcion: '' });
+  const [newAnuncio, setNewAnuncio] = useState({ titulo: '', descripcion: '', categoria: 'local' });
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [anuncioToDelete, setAnuncioToDelete] = useState(null);
   const [selectedAnuncio, setSelectedAnuncio] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-
   const [user, setUser ] = useState(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-
-  // Estado para manejar el perfil del usuario
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profile, setProfile] = useState({ username: '', email: '', newPassword: '' });
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   const handleAddAnuncio = () => {
     const nuevoAnuncio = { id: Date.now(), ...newAnuncio };
     setAnuncios([...anuncios, nuevoAnuncio]);
-    setNewAnuncio({ titulo: '', descripcion: '' });
+    setNewAnuncio({ titulo: '', descripcion: '', categoria: 'local' });
     setShowModal(false);
   };
 
@@ -38,7 +36,7 @@ function App() {
     setAnuncios(anuncios.map(anuncio => 
       anuncio.id === selectedAnuncio.id ? { ...selectedAnuncio, ...newAnuncio } : anuncio
     ));
-    setNewAnuncio({ titulo: '', descripcion: '' });
+    setNewAnuncio({ titulo: '', descripcion: '', categoria: 'local' });
     setShowModal(false);
     setIsEditing(false);
   };
@@ -61,7 +59,7 @@ function App() {
 
       const data = await response.json();
       setUser (data.user);
-      setProfile({ username: data.user.username, email: data.user.email, newPassword: '' }); // Cargar perfil
+      setProfile({ username: data.user.username, email: data.user.email, newPassword: '' });
       setError('');
     } catch (err) {
       setError('Error al iniciar sesión');
@@ -97,7 +95,7 @@ function App() {
 
   const openEditModal = (anuncio) => {
     setSelectedAnuncio(anuncio);
-    setNewAnuncio({ titulo: anuncio.titulo, descripcion: anuncio.descripcion });
+    setNewAnuncio({ titulo: anuncio.titulo, descripcion: anuncio.descripcion, categoria: anuncio.categoria });
     setIsEditing(true);
     setShowModal(true);
   };
@@ -107,10 +105,11 @@ function App() {
   };
 
   const handleUpdateProfile = () => {
-    // Aquí puedes agregar la lógica para actualizar la contraseña en el backend si es necesario
     setUser ({ ...user, username: profile.username, email: profile.email });
     setShowProfileModal(false);
   };
+
+  const filteredAnuncios = selectedCategory === 'all' ? anuncios : anuncios.filter(anuncio => anuncio.categoria === selectedCategory);
 
   return (
     <>
@@ -166,11 +165,21 @@ function App() {
             <button onClick={handleLogout}>Cerrar sesión</button>
             <button onClick={openProfileModal}>Ver Perfil</button>
 
+            <div>
+              <label>Filtrar por categoría:</label>
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+                <option value="all">Todos</option>
+                <option value="local">Noticias Locales</option>
+                <option value="internacional">Noticias Internacionales</option>
+              </select>
+            </div>
+
             <div className="anuncios-container">
-              {anuncios.map(anuncio => (
+              {filteredAnuncios.map(anuncio => (
                 <div key={anuncio.id} className="anuncio">
                   <h3>{anuncio.titulo}</h3>
                   <p>{anuncio.descripcion}</p>
+                  <p><strong>Categoría:</strong> {anuncio.categoria}</p>
                   <button onClick={() => openEditModal(anuncio)}>Editar</button>
                   <button onClick={() => { setShowDeleteModal(true); setAnuncioToDelete(anuncio.id); }}>
                     Eliminar
@@ -180,7 +189,7 @@ function App() {
             </div>
 
             <button className="add-anuncio-button" onClick={() => {
-              setNewAnuncio({ titulo: '', descripcion: '' });
+              setNewAnuncio({ titulo: '', descripcion: '', categoria: 'local' });
               setIsEditing(false);
               setShowModal(true);
             }}>
@@ -206,6 +215,16 @@ function App() {
                       value={newAnuncio.descripcion}
                       onChange={(e) => setNewAnuncio({ ...newAnuncio, descripcion: e.target.value })}
                     />
+                  </label>
+                  <label>
+                    Categoría:
+                    <select
+                      value={newAnuncio.categoria}
+                      onChange={(e) => setNewAnuncio({ ...newAnuncio, categoria: e.target.value })}
+                    >
+                      <option value="local">Local</option>
+                      <option value="internacional">Internacional</option>
+                    </select>
                   </label>
                   <button onClick={isEditing ? handleEditAnuncio : handleAddAnuncio}>
                     {isEditing ? 'Actualizar' : 'Agregar'}

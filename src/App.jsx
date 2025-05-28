@@ -4,9 +4,11 @@ import './components/styles/styles.css';
 
 function App() {
   const [anuncios, setAnuncios] = useState([
-    { id: 1, titulo: 'Venezuela Lista', descripcion: 'Maduro afirma que está listo para recoger a migrantes presos en El Salvador.', categoria: 'local' },
+    { id: 1, titulo: 'Venezuela Lista', descripcion: 'Maduro afirma que está listo para recoger a migrantes presos en El Salvador.', categoria: 'internacional' },
     { id: 2, titulo: 'Japón y el fuego artificial más grande', descripcion: 'En Japón lanzaron el fuego artificial más grande del mundo.', categoria: 'internacional' },
-    { id: 3, titulo: 'URGENTE', descripcion: 'Las calles de Venezuela se desbordan para protestar contra el fraude de Nicolás Maduro.', categoria: 'local' },
+    { id: 3, titulo: 'URGENTE', descripcion: 'Las calles de Venezuela se desbordan para protestar contra el fraude de Nicolás Maduro.', categoria: 'internacional' },
+    { id: 3, titulo: 'Valentia Policial', descripcion: 'Oficiales femeninas de la policia nacional, salen en pijamas en respuestas a sus compañera afectados por una granada', categoria: 'local' },
+    { id: 3, titulo: 'Choco, Campeon mundial de robotica educativa.', descripcion: 'Un grupo de estudiantes del Chocó se convirtió en el campeón mundial de robótica educativa en México.', categoria: 'local' },
   ]);
 
   const [newAnuncio, setNewAnuncio] = useState({ titulo: '', descripcion: '', categoria: 'local' });
